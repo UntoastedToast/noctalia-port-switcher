@@ -11,7 +11,8 @@
     "no_ports": "This output has only one port; nothing to switch.",
     "port_unavailable": "Reported as unavailable, but still selectable",
     "active": "Active",
-    "tap_to_switch": "Tap to switch"
+    "tap_to_switch": "Tap to switch",
+    "right_click_hint": "Right-click to rename or change icon"
   },
   "editor": {
     "title": "Edit port",
@@ -30,7 +31,6 @@
     }
   },
   "actions": {
-    "edit": "Rename or change icon",
     "cancel": "Cancel",
     "save": "Save"
   },

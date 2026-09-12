@@ -5,8 +5,8 @@
 [[plugin]]
 id = "UntoastedToast/port-switcher"
 name = "Port Switcher"
-version = "1.4.0"
-updated_at = 1789215412
+version = "1.4.1"
+updated_at = 1789215541
 added_at = 1789213269
 author = "UntoastedToast"
 license = "MIT"

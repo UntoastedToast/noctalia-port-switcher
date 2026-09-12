@@ -1,6 +1,6 @@
 id = "UntoastedToast/port-switcher"
 name = "Port Switcher"
-version = "1.4.0"
+version = "1.4.1"
 plugin_api = 15
 author = "UntoastedToast"
 license = "MIT"
@@ -19,8 +19,8 @@ entry = "widget.luau"
 [[panel]]
 id = "ports"
 entry = "panel.luau"
-width = 300
-height = 220
+width = 360
+height = 240
 placement = "attached"
 position = "top_right"
 open_near_click = true

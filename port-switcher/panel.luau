@@ -1,13 +1,11 @@
 --!nonstrict
--- Port picker panel: a row of small square icon buttons, one per selectable
--- port on the default output sink - the same visual pattern Noctalia's own
--- Audio quick settings uses for its per-stream output-route buttons (see the
--- two icon buttons next to an app's volume slider in Settings -> Audio).
--- Left-click a button to switch to that port; right-click it to rename it or
--- change its icon inline (onRightClick only exists on ui.button, so this has
--- to be a button, not a richer row/card - see portButton()). Panel and
--- service are separate script contexts, so they only ever talk through
--- noctalia.state (COMMAND_KEY / SNAPSHOT_KEY).
+-- Port picker panel: a row of icon+name buttons, one per selectable port on
+-- the default output sink, laid out like a segmented control. Left-click a
+-- button to switch to that port; right-click it to rename it or change its
+-- icon inline (onRightClick only exists on ui.button, so this has to be a
+-- button, not a richer row/card - see portButton()). Panel and service are
+-- separate script contexts, so they only ever talk through noctalia.state
+-- (COMMAND_KEY / SNAPSHOT_KEY).
 
 local common = require("./common.luau")
 
@@ -98,11 +96,10 @@ local function editor(port)
 	})
 end
 
--- Small square icon-only button per port, mirroring Noctalia's own per-stream
--- output buttons in the Audio quick settings. Left-click switches; right-click
--- opens the rename/icon editor (rendered once, below the whole row - see
--- render()). Name and status live in the tooltip, same as the native buttons
--- this mirrors have no visible label either.
+-- Icon + name button per port, laid out in a row like a segmented control.
+-- Left-click switches; right-click opens the rename/icon editor (rendered
+-- once, below the whole row - see render()). Status goes in the tooltip -
+-- there's no room for a second line on a button.
 local function portButton(port)
 	local unavailable = port.available == false
 	local clickable = not port.active and not unavailable and not snapshot.busy
@@ -110,11 +107,12 @@ local function portButton(port)
 		or (port.active and noctalia.tr("panel.active") or noctalia.tr("panel.tap_to_switch"))
 
 	return ui.button({
+		text = port.displayName,
 		glyph = port.icon,
 		variant = port.active and "primary" or "outline",
-		controlSize = "md",
 		enabled = not unavailable and not snapshot.busy,
-		tooltip = port.displayName .. " · " .. statusText .. " · " .. noctalia.tr("panel.right_click_hint"),
+		flexGrow = 1,
+		tooltip = statusText .. " · " .. noctalia.tr("panel.right_click_hint"),
 		onClick = clickable and function()
 			sendCommand("set_port", { port = port.name })
 		end or nil,

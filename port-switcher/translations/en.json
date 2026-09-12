@@ -11,9 +11,28 @@
     "no_ports": "This output has only one port; nothing to switch.",
     "port_unavailable": "Reported as unavailable, but still selectable",
     "active": "Active",
-    "tap_to_switch": "Tap to switch",
-    "current": "Current",
-    "use": "Use"
+    "tap_to_switch": "Tap to switch"
+  },
+  "editor": {
+    "title": "Edit port",
+    "alias": "Name",
+    "icon": "Icon",
+    "icon_options": {
+      "automatic": "Automatic",
+      "headphones": "Headphones",
+      "headset": "Headset",
+      "speaker": "Speaker",
+      "airpods": "Earbuds",
+      "microphone": "Microphone",
+      "bluetooth": "Bluetooth",
+      "tv": "TV / HDMI",
+      "music": "Music"
+    }
+  },
+  "actions": {
+    "edit": "Rename or change icon",
+    "cancel": "Cancel",
+    "save": "Save"
   },
   "errors": {
     "command_start": "Could not start pactl.",

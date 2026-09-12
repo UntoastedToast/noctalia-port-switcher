@@ -16,10 +16,10 @@ local snapshot = noctalia.state.get(SNAPSHOT_KEY) or {
 
 local function render()
 	local port = common.activePort(snapshot.ports)
-	barWidget.setGlyph(common.glyphForPort(port))
+	barWidget.setGlyph(port and port.icon or "volume")
 	barWidget.setGlyphColor(snapshot.available and "default" or "error")
 
-	local label = port and tostring(port.description or port.name or "") or ""
+	local label = port and tostring(port.displayName or port.description or port.name or "") or ""
 	barWidget.setText(not barWidget.isVertical() and label or "")
 
 	local tooltipItems = {

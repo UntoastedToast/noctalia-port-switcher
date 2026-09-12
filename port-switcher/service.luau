@@ -3,9 +3,23 @@
 -- the widget and panel only read published state and send commands through
 -- shared state (COMMAND_KEY) or onIpc (compositor keybinds).
 
+local common = require("./common.luau")
+
 local SNAPSHOT_KEY = "port_switcher_snapshot"
 local COMMAND_KEY = "port_switcher_command"
+local PREFERENCES_VERSION = 1
 local REFRESH_INTERVAL_MS = 3000
+
+local dataDir = noctalia.pluginDataDir()
+local preferencesPath = dataDir and (dataDir .. "/preferences.json") or nil
+
+-- Keyed by port name (e.g. "analog-output-headphones"), the pactl-stable id.
+local preferences = {
+	version = PREFERENCES_VERSION,
+	aliases = {},
+	icons = {},
+}
+local preferencesDirty = false
 
 local snapshot = {
 	available = false,
@@ -64,6 +78,57 @@ local function portText(value)
 	return tostring(value or ""):match("^%s*(.-)%s*$") or ""
 end
 
+local function normalizeMap(value)
+	return type(value) == "table" and value or {}
+end
+
+local function setPreference(map, key, value)
+	if map[key] == value then
+		return false
+	end
+	map[key] = value
+	preferencesDirty = true
+	return true
+end
+
+local function loadPreferences()
+	if preferencesPath == nil then
+		return
+	end
+	local raw = noctalia.readFile(preferencesPath)
+	if raw == nil then
+		return
+	end
+	local decoded = decodeJson(raw)
+	if decoded == nil then
+		return
+	end
+	preferences.version = PREFERENCES_VERSION
+	preferences.aliases = normalizeMap(decoded.aliases)
+	preferences.icons = normalizeMap(decoded.icons)
+end
+
+local function savePreferences()
+	if not preferencesDirty then
+		return true
+	end
+	if preferencesPath == nil then
+		return false
+	end
+	local encoded, encodeError = noctalia.json.encode(preferences, true)
+	if encoded == nil then
+		noctalia.log("port-switcher: could not encode preferences: " .. tostring(encodeError or "unknown error"))
+		return false
+	end
+	local ok, writeError = noctalia.writeFile(preferencesPath, encoded)
+	if not ok then
+		noctalia.log("port-switcher: could not save preferences: " .. tostring(writeError or "unknown error"))
+	else
+		preferencesDirty = false
+	end
+	return ok == true
+end
+
 -- pactl's JSON sink object carries `active_port` (a table, or sometimes just the
 -- port name string) and a `ports` array of {name, description, availability}.
 local function parsePorts(sink)
@@ -75,10 +140,16 @@ local function parsePorts(sink)
 			local name = portText(port.name)
 			if name ~= "" then
 				local description = portText(port.description)
+				description = description ~= "" and description or name
 				local availability = portText(port.availability):lower()
+				local alias = trim(preferences.aliases[name])
+				local iconOverride = trim(preferences.icons[name])
 				table.insert(ports, {
 					name = name,
-					description = description ~= "" and description or name,
+					description = description,
+					displayName = alias ~= "" and alias or description,
+					iconKey = common.iconKeyForGlyph(iconOverride),
+					icon = iconOverride ~= "" and iconOverride or common.autoGlyphForPort({ name = name, description = description }),
 					-- pactl reports "not available" only when jack-sense actively detects
 					-- nothing plugged in; treat every other value as selectable.
 					available = availability ~= "not available",
@@ -201,6 +272,19 @@ local function setPort(portName)
 	end)
 end
 
+-- Rename and/or re-icon a port. Purely local preferences, no pactl involved,
+-- so it always "succeeds" immediately from the UI's point of view.
+local function updatePort(portName, alias, icon)
+	portName = trim(portName)
+	if portName == "" then
+		return
+	end
+	setPreference(preferences.aliases, portName, trim(alias) ~= "" and trim(alias) or nil)
+	setPreference(preferences.icons, portName, trim(icon) ~= "" and trim(icon) or nil)
+	savePreferences()
+	refreshAll()
+end
+
 function onIpc(event, payload)
 	if event == "set_port" then
 		setPort(tostring(payload or ""))
@@ -210,8 +294,13 @@ function onIpc(event, payload)
 end
 
 noctalia.state.watch(COMMAND_KEY, function(command)
-	if type(command) == "table" and command.action == "set_port" then
+	if type(command) ~= "table" then
+		return
+	end
+	if command.action == "set_port" then
 		setPort(tostring(command.port or ""))
+	elseif command.action == "update_port" then
+		updatePort(command.id, command.alias, command.icon)
 	end
 end)
 
@@ -233,4 +322,5 @@ function update()
 	refreshAll()
 end
 
+loadPreferences()
 refreshAll()

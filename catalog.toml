@@ -1,0 +1,17 @@
+# Index of every plugin this source ships. Keep one [[plugin]] row per plugin
+# subdirectory; the per-plugin plugin.toml stays authoritative and is re-read
+# by the host on enable.
+
+[[plugin]]
+id = "UntoastedToast/port-switcher"
+name = "Port Switcher"
+version = "1.0.0"
+updated_at = 1789213269
+added_at = 1789213269
+author = "UntoastedToast"
+license = "MIT"
+icon = "headphones"
+description = "Switch a sound card's active output port (e.g. Headphones vs Line Out) from a bar widget or panel."
+deprecated = false
+plugin_api = 15
+tags = ["audio", "bar", "panel", "service", "hardware"]

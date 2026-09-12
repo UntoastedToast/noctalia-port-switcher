@@ -1,10 +1,13 @@
 --!nonstrict
--- Port picker panel: one tile per selectable port on the default output sink
--- (e.g. "Headphones" / "Line Out"). Left-click a tile to switch to that port;
--- right-click it to rename it or change its icon inline (status shows in the
--- tooltip; see portTile() for why this is a single ui.button rather than a
--- richer card). Panel and service are separate script contexts, so they only
--- ever talk through noctalia.state (COMMAND_KEY / SNAPSHOT_KEY).
+-- Port picker panel: a row of small square icon buttons, one per selectable
+-- port on the default output sink - the same visual pattern Noctalia's own
+-- Audio quick settings uses for its per-stream output-route buttons (see the
+-- two icon buttons next to an app's volume slider in Settings -> Audio).
+-- Left-click a button to switch to that port; right-click it to rename it or
+-- change its icon inline (onRightClick only exists on ui.button, so this has
+-- to be a button, not a richer row/card - see portButton()). Panel and
+-- service are separate script contexts, so they only ever talk through
+-- noctalia.state (COMMAND_KEY / SNAPSHOT_KEY).
 
 local common = require("./common.luau")
 
@@ -95,25 +98,23 @@ local function editor(port)
 	})
 end
 
--- One port per tile. `onRightClick` only exists on ui.button (per
--- noctalia.d.luau's UiButtonProps; ui.row/ui.column only carry onClick and
--- have no tooltip either), so this has to be a single button rather than a
--- richer icon+column card - a button is the only node that can catch both
--- clicks. Left-click switches; right-click opens the rename/icon editor
--- below it; status goes in the tooltip since there's no room for a subtitle.
-local function portTile(port)
+-- Small square icon-only button per port, mirroring Noctalia's own per-stream
+-- output buttons in the Audio quick settings. Left-click switches; right-click
+-- opens the rename/icon editor (rendered once, below the whole row - see
+-- render()). Name and status live in the tooltip, same as the native buttons
+-- this mirrors have no visible label either.
+local function portButton(port)
 	local unavailable = port.available == false
 	local clickable = not port.active and not unavailable and not snapshot.busy
 	local statusText = unavailable and noctalia.tr("panel.port_unavailable")
 		or (port.active and noctalia.tr("panel.active") or noctalia.tr("panel.tap_to_switch"))
 
-	local tile = ui.button({
-		text = port.displayName,
+	return ui.button({
 		glyph = port.icon,
 		variant = port.active and "primary" or "outline",
+		controlSize = "md",
 		enabled = not unavailable and not snapshot.busy,
-		tooltip = statusText .. " · " .. noctalia.tr("panel.right_click_hint"),
-		flexGrow = 1,
+		tooltip = port.displayName .. " · " .. statusText .. " · " .. noctalia.tr("panel.right_click_hint"),
 		onClick = clickable and function()
 			sendCommand("set_port", { port = port.name })
 		end or nil,
@@ -121,21 +122,16 @@ local function portTile(port)
 			startEditing(port)
 		end,
 	})
-
-	local children = { tile }
-	if editingPort == port.name then
-		table.insert(children, editor(port))
-	end
-	return ui.column({ gap = 8 }, children)
 end
 
 render = function()
-	local children = {
-		ui.row({ align = "center", gap = 8 }, {
-			ui.glyph({ name = "headphones", size = 18, color = "primary" }),
-			ui.label({ text = noctalia.tr("title"), fontSize = 16, fontWeight = "bold", flexGrow = 1 }),
-			ui.button({ glyph = "close", variant = "ghost", controlSize = "sm", onClick = "onCloseClicked" }),
-		}),
+	local header = ui.row({ align = "center", gap = 8 }, {
+		ui.glyph({ name = "headphones", size = 18, color = "primary" }),
+		ui.label({ text = noctalia.tr("title"), fontSize = 16, fontWeight = "bold", flexGrow = 1 }),
+		ui.button({ glyph = "close", variant = "ghost", controlSize = "sm", onClick = "onCloseClicked" }),
+	})
+
+	local body = {
 		ui.label({
 			text = tostring(snapshot.sinkDescription or ""),
 			fontSize = 11,
@@ -145,23 +141,28 @@ render = function()
 	}
 
 	if snapshot.loading then
-		table.insert(children, ui.label({ text = noctalia.tr("panel.loading"), color = "on_surface_variant" }))
+		table.insert(body, ui.label({ text = noctalia.tr("panel.loading"), color = "on_surface_variant" }))
 	elseif not snapshot.available then
 		local message = tostring(snapshot.error) ~= "" and tostring(snapshot.error) or noctalia.tr("panel.unavailable")
-		table.insert(children, ui.label({ text = message, color = "error" }))
+		table.insert(body, ui.label({ text = message, color = "error" }))
 	elseif #snapshot.ports < 2 then
-		table.insert(children, ui.label({ text = noctalia.tr("panel.no_ports"), color = "on_surface_variant" }))
+		table.insert(body, ui.label({ text = noctalia.tr("panel.no_ports"), color = "on_surface_variant" }))
 	else
-		local tiles = {}
+		local buttons = {}
 		for _, port in ipairs(snapshot.ports) do
-			table.insert(tiles, portTile(port))
+			table.insert(buttons, portButton(port))
 		end
-		-- The inline editor can make one tile much taller than the others; scroll
-		-- the list instead of relying on the (host-fixed) panel height to fit it.
-		table.insert(children, ui.scroll({ flexGrow = 1, gap = 8 }, tiles))
+		table.insert(body, ui.row({ gap = 8, wrap = true }, buttons))
+
+		local editingPortData = editingPort ~= nil and findPort(editingPort) or nil
+		if editingPortData ~= nil then
+			table.insert(body, editor(editingPortData))
+		end
 	end
 
-	panel.render(ui.column({ flexGrow = 1, gap = 12 }, children))
+	-- Scroll the body (not the header): an open editor can make the content
+	-- taller than the (host-fixed) panel height.
+	panel.render(ui.column({ flexGrow = 1, gap = 12 }, { header, ui.scroll({ flexGrow = 1, gap = 12 }, body) }))
 end
 
 noctalia.state.watch(SNAPSHOT_KEY, function(value)

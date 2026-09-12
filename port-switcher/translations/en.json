@@ -9,7 +9,11 @@
     "loading": "Loading…",
     "unavailable": "Audio unavailable.",
     "no_ports": "This output has only one port; nothing to switch.",
-    "port_unavailable": "Reported as unavailable, but still selectable"
+    "port_unavailable": "Reported as unavailable, but still selectable",
+    "active": "Active",
+    "tap_to_switch": "Tap to switch",
+    "current": "Current",
+    "use": "Use"
   },
   "errors": {
     "command_start": "Could not start pactl.",

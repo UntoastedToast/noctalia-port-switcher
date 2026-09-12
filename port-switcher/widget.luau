@@ -2,6 +2,8 @@
 -- Bar widget: shows the active port's glyph, left-click opens the port panel
 -- (see plugin.toml [widget.actions]).
 
+local common = require("./common.luau")
+
 local SNAPSHOT_KEY = "port_switcher_snapshot"
 
 local snapshot = noctalia.state.get(SNAPSHOT_KEY) or {
@@ -12,29 +14,9 @@ local snapshot = noctalia.state.get(SNAPSHOT_KEY) or {
 	error = "",
 }
 
-local function activePort(ports)
-	for _, port in ipairs(type(ports) == "table" and ports or {}) do
-		if port.active == true then
-			return port
-		end
-	end
-	return nil
-end
-
-local function glyphFor(port)
-	local label = tostring(port and (port.description or port.name) or ""):lower()
-	if label:find("headphone", 1, true) or label:find("headset", 1, true) then
-		return "headphones"
-	end
-	if label:find("hdmi", 1, true) or label:find("displayport", 1, true) then
-		return "device-tv"
-	end
-	return "volume"
-end
-
 local function render()
-	local port = activePort(snapshot.ports)
-	barWidget.setGlyph(glyphFor(port))
+	local port = common.activePort(snapshot.ports)
+	barWidget.setGlyph(common.glyphForPort(port))
 	barWidget.setGlyphColor(snapshot.available and "default" or "error")
 
 	local label = port and tostring(port.description or port.name or "") or ""

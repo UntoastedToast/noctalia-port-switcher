@@ -1,10 +1,10 @@
 --!nonstrict
--- Port picker panel: one card per selectable port on the default output sink
--- (e.g. "Headphones" / "Line Out"), matching Noctalia's device-row look
--- (icon, bold name, status subtitle). Left-click the card to switch to that
--- port; right-click it to rename it or change its icon inline. Panel and
--- service are separate script contexts, so they only ever talk through
--- noctalia.state (COMMAND_KEY / SNAPSHOT_KEY).
+-- Port picker panel: one tile per selectable port on the default output sink
+-- (e.g. "Headphones" / "Line Out"). Left-click a tile to switch to that port;
+-- right-click it to rename it or change its icon inline (status shows in the
+-- tooltip; see portTile() for why this is a single ui.button rather than a
+-- richer card). Panel and service are separate script contexts, so they only
+-- ever talk through noctalia.state (COMMAND_KEY / SNAPSHOT_KEY).
 
 local common = require("./common.luau")
 
@@ -95,48 +95,34 @@ local function editor(port)
 	})
 end
 
--- Card per port: icon, bold name, status subtitle - matching Noctalia's
--- device-row look. Left-click switches (whole card is the target, no
--- separate action button); right-click opens the rename/icon editor below it.
+-- One port per tile. `onRightClick` only exists on ui.button (per
+-- noctalia.d.luau's UiButtonProps; ui.row/ui.column only carry onClick and
+-- have no tooltip either), so this has to be a single button rather than a
+-- richer icon+column card - a button is the only node that can catch both
+-- clicks. Left-click switches; right-click opens the rename/icon editor
+-- below it; status goes in the tooltip since there's no room for a subtitle.
 local function portTile(port)
 	local unavailable = port.available == false
 	local clickable = not port.active and not unavailable and not snapshot.busy
 	local statusText = unavailable and noctalia.tr("panel.port_unavailable")
 		or (port.active and noctalia.tr("panel.active") or noctalia.tr("panel.tap_to_switch"))
 
-	local card = ui.row({
-		align = "center",
-		gap = 10,
-		padding = 10,
-		radius = 10,
-		borderWidth = 1,
-		border = port.active and "primary" or "outline/0.55",
-		fill = port.active and "primary/0.08" or "surface/0",
-		tooltip = noctalia.tr("panel.right_click_hint"),
+	local tile = ui.button({
+		text = port.displayName,
+		glyph = port.icon,
+		variant = port.active and "primary" or "outline",
+		enabled = not unavailable and not snapshot.busy,
+		tooltip = statusText .. " · " .. noctalia.tr("panel.right_click_hint"),
+		flexGrow = 1,
 		onClick = clickable and function()
 			sendCommand("set_port", { port = port.name })
 		end or nil,
 		onRightClick = function()
 			startEditing(port)
 		end,
-	}, {
-		ui.glyph({
-			name = port.icon,
-			size = 20,
-			color = port.active and "primary" or "on_surface_variant",
-		}),
-		ui.column({ flexGrow = 1, gap = 2 }, {
-			ui.label({ text = port.displayName, fontWeight = "bold", maxLines = 1 }),
-			ui.label({
-				text = statusText,
-				fontSize = 10,
-				color = port.active and "primary" or "on_surface_variant",
-				maxLines = 1,
-			}),
-		}),
 	})
 
-	local children = { card }
+	local children = { tile }
 	if editingPort == port.name then
 		table.insert(children, editor(port))
 	end

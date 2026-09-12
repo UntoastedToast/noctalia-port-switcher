@@ -1,0 +1,30 @@
+id = "UntoastedToast/port-switcher"
+name = "Port Switcher"
+version = "1.0.0"
+plugin_api = 15
+author = "UntoastedToast"
+license = "MIT"
+icon = "headphones"
+description = "Switch a sound card's active output port (e.g. Headphones vs Line Out) from a bar widget or panel."
+tags = ["audio", "bar", "panel", "service", "hardware"]
+dependencies = ["pactl"]
+
+[[widget]]
+id = "widget"
+entry = "widget.luau"
+
+  [widget.actions]
+  left = "panel-toggle UntoastedToast/port-switcher:ports"
+
+[[panel]]
+id = "ports"
+entry = "panel.luau"
+width = 320
+height = 260
+placement = "attached"
+position = "top_right"
+open_near_click = true
+
+[[service]]
+id = "service"
+entry = "service.luau"

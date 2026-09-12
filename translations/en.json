@@ -1,0 +1,20 @@
+{
+  "title": "Port Switcher",
+  "widget": {
+    "sink": "Output",
+    "port": "Port",
+    "no_port": "No port"
+  },
+  "panel": {
+    "loading": "Loading…",
+    "unavailable": "Audio unavailable.",
+    "no_ports": "This output has only one port; nothing to switch.",
+    "port_unavailable": "Reported as unavailable, but still selectable"
+  },
+  "errors": {
+    "command_start": "Could not start pactl.",
+    "pactl_missing": "pactl was not found on this system.",
+    "no_default_sink": "No default output sink found.",
+    "switch_failed": "Switching the port failed."
+  }
+}
